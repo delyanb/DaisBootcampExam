@@ -1,0 +1,265 @@
+﻿@using DaisExam.Models.ViewModels.Account
+@model AccountDetailsViewModel
+@{
+    ViewData["Title"] = "Account Details";
+    var accountId = Model.AccountDetailsInfo.AccountId;
+}
+
+<div class="container my-5">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">💳 Account Overview</h2>
+        <p class="text-muted">Details and transactions for your account</p>
+    </div>
+
+    <div class="card shadow-sm mb-3 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Account #@Model.AccountDetailsInfo.AccountNumber</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-2"><strong>Account ID:</strong> @Model.AccountDetailsInfo.AccountId</p>
+            <p class="mb-2">
+                <strong>Available Balance:</strong>
+                <span class="badge bg-success fs-6">@Model.AccountDetailsInfo.AvailableAmount.ToString("C")</span>
+            </p>
+            <p><strong>Other Owners:</strong></p>
+            @if (Model.AccountDetailsInfo.OtherOwners?.Any() == true)
+            {
+                <ul class="list-group list-group-flush mb-0">
+                    @foreach (var owner in Model.AccountDetailsInfo.OtherOwners)
+                    {
+                        <li class="list-group-item">@owner</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-muted fst-italic">No other owners</p>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mb-5">
+        <a href="@Url.Action("Index", "Accounts")"
+           class="btn btn-outline-secondary btn-lg shadow-sm">
+            🔙 Back to Accounts
+        </a>
+
+        <a href="@Url.Action("Create", "Payments", new { fromAccountId = accountId })"
+           class="btn btn-success btn-lg shadow-sm">
+            💸 Make a Payment
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="paymentTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab">
+                📤 Sent Payments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab">
+                📥 Received Payments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                ⏳ Pending Payments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                ❌ Rejected Payments
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="paymentTabsContent">
+
+        <!-- Sent Payments -->
+        <div class="tab-pane fade show active" id="sent" role="tabpanel">
+            @{
+                var sentApproved = Model.PaymentList.PaymentVMs
+                .Where(pay=> pay.Status == "APPROVED" && pay.ToAccountId!=Model.AccountDetailsInfo.AccountId);
+            }
+            @if (!sentApproved.Any())
+            {
+                <p class="text-muted text-center">No processed sent payments.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>To Account</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Issued Time</th>
+                                <th>Time Approved</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in sentApproved.OrderByDescending(p => p.DateApproved))
+                            {
+                                <tr>
+                                    <td>@p.PaymentId</td>
+                                    <td>@p.ToAccountNumber</td>
+                                    <td><span class="text-danger fw-semibold">@p.Amount.ToString("C")</span></td>
+                                    <td>@(string.IsNullOrEmpty(p.Reason) ? "-" : p.Reason)</td>
+                                    <td>@p.DateTimeMade.ToString("dd MMM yyyy HH:mm")</td>
+                                    <td>@(p.DateApproved?.ToString("dd MMM yyyy HH:mm") ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Received Payments -->
+        <div class="tab-pane fade" id="received" role="tabpanel">
+            @{
+                var receivedApproved = Model.PaymentList.PaymentVMs
+                .Where(p => p.ToAccountId == accountId && p.Status == "APPROVED");
+            }
+            @if (!receivedApproved.Any())
+            {
+                <p class="text-muted text-center">No processed received payments.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>From Account</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Issued Time</th>
+                                <th>Time Approved</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in receivedApproved.OrderByDescending(p => p.DateApproved))
+                            {
+                                <tr>
+                                    <td>@p.PaymentId</td>
+                                    <td>@p.FromAccountNumber</td>
+                                    <td><span class="text-success fw-semibold">@p.Amount.ToString("C")</span></td>
+                                    <td>@(string.IsNullOrEmpty(p.Reason) ? "-" : p.Reason)</td>
+                                    <td>@p.DateTimeMade.ToString("dd MMM yyyy HH:mm")</td>
+                                    <td>@(p.DateApproved?.ToString("dd MMM yyyy HH:mm") ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Pending Payments -->
+        <div class="tab-pane fade" id="pending" role="tabpanel">
+            @{
+                var pendingPayments = Model.PaymentList.PaymentVMs
+                .Where(p => p.FromAccountId == accountId && p.Status == "PENDING");
+            }
+            @if (!pendingPayments.Any())
+            {
+                <p class="text-muted text-center">No pending payments for this account.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>To Account</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Issued Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in pendingPayments.OrderByDescending(p => p.DateTimeMade))
+                            {
+                                <tr>
+                                    <td>@p.PaymentId</td>
+                                    <td>@p.ToAccountNumber</td>
+                                    <td><span class="fw-semibold">@p.Amount.ToString("C")</span></td>
+                                    <td>@(string.IsNullOrEmpty(p.Reason) ? "-" : p.Reason)</td>
+                                    <td>@p.DateTimeMade.ToString("dd MMM yyyy HH:mm")</td>
+                                    <td>
+                                        <form method="post" asp-controller="Payments" asp-action="ApprovePayment" asp-route-paymentId="@p.PaymentId" asp-route-accountId="@Model.AccountDetailsInfo.AccountId" class="d-inline">
+                                            <button class="btn btn-sm btn-outline-success me-1" type="submit">Approve</button>
+                                        </form>
+                                        <form method="post" asp-controller="Payments" asp-action="RejectPayment" asp-route-paymentId="@p.PaymentId" asp-route-accountId ="@Model.AccountDetailsInfo.AccountId" class="d-inline">
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+        <div class="tab-pane fade" id="rejected" role="tabpanel">
+            @{
+                var rejectedPayments = Model.PaymentList.PaymentVMs
+                .Where( p=> p.Status == "REJECTED");
+            }
+            @if (!rejectedPayments.Any())
+            {
+                <p class="text-muted text-center">No rejected payments for this account.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>To Account</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Date</th>
+                                <th>Declined Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in rejectedPayments.OrderByDescending(p => p.DateTimeMade))
+                            {
+                                <tr>
+                                    <td>@p.PaymentId</td>
+                                    <td>@p.ToAccountNumber</td>
+                                    <td><span class="text-danger fw-semibold">@p.Amount.ToString("C")</span></td>
+                                    <td>@(string.IsNullOrEmpty(p.Reason) ? "-" : p.Reason)</td>
+                                    <td>@p.DateTimeMade.ToString("dd MMM yyyy HH:mm")</td>
+                                    <td>@(p.DateApproved?.ToString("dd MMM yyyy HH:mm") ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,130 @@
+﻿@model DaisExam.Models.ViewModels.Payment.PaymentListViewModelSeperated
+@{
+    ViewData["Title"] = "My Payments";
+}
+
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">My Payments</h2>
+
+    <!-- Pending Payments -->
+    <h4 class="mb-3 text-warning">⏳ Pending Payments</h4>
+
+    @if (Model.PendingPayments == null || !Model.PendingPayments.Any())
+    {
+        <div class="alert alert-secondary">No pending payments.</div>
+    }
+    else
+    {
+        <div class="table-responsive mb-5">
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <thead class="table-warning">
+                    <tr>
+                        <th>Payment ID</th>
+                        <th>From Account</th>
+                        <th>To Account</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.PendingPayments)
+                    {
+                        <tr>
+                            <td>@p.PaymentId</td>
+                            <td>
+                                <div class="text-nowrap">
+                                    <strong>ID:</strong> @p.FromAccountId<br />
+                                    <strong>#:</strong> @p.FromAccountNumber
+                                </div>
+                                @if (!p.UserIsAccountOwner)
+                                {
+                                    <div class="text-danger small mt-1 fst-italic">
+                                        ⚠️ Not your account
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <strong>ID:</strong> @p.ToAccountId<br />
+                                <strong>#:</strong> @p.ToAccountNumber
+                            </td>
+                            <td>@p.Amount.ToString("C")</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.Reason) ? "-" : p.Reason)</td>
+                            <td>@p.DateTimeMade.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>
+                                @if (p.UserIsAccountOwner)
+                                {
+                                    <form method="post" asp-controller="Payments" asp-action="ApprovePayment"
+                                          asp-route-paymentId="@p.PaymentId" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-success me-1">Approve</button>
+                                    </form>
+                                    <form method="post" asp-controller="Payments" asp-action="RejectPayment"
+                                          asp-route-paymentId="@p.PaymentId" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">No action available</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <!-- Approved Payments -->
+    <h4 class="mb-3 text-success">✅ Approved Payments</h4>
+
+    @if (Model.ApprovedPayments == null || !Model.ApprovedPayments.Any())
+    {
+        <div class="alert alert-secondary">No approved payments.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <thead class="table-success">
+                    <tr>
+                        <th>Payment ID</th>
+                        <th>From Account</th>
+                        <th>To Account</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                        <th>Date</th>
+                        <th>Approved</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.ApprovedPayments)
+                    {
+                        <tr>
+                            <td>@p.PaymentId</td>
+                            <td>
+                                <strong>ID:</strong> @p.FromAccountId<br />
+                                <strong>#:</strong> @p.FromAccountNumber
+                                @if (!p.UserIsAccountOwner)
+                                {
+                                    <div class="text-danger small mt-1 fst-italic">
+                                        ⚠️ You no longer have access to this account
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <strong>ID:</strong> @p.ToAccountId<br />
+                                <strong>#:</strong> @p.ToAccountNumber
+                            </td>
+                            <td>@p.Amount.ToString("C")</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.Reason) ? "-" : p.Reason)</td>
+                            <td>@p.DateTimeMade.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@(p.DateApproved?.ToString("dd MMM yyyy HH:mm") ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
